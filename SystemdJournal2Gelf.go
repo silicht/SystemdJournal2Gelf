@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/DECK36/go-gelf/gelf"
 	"io"
 	"os"
 	"os/exec"
@@ -11,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/DECK36/go-gelf/gelf"
 )
 
 /*
@@ -18,16 +19,21 @@ import (
 	https://github.com/Graylog2/graylog2-docs/wiki/GELF
 */
 type SystemdJournalEntry struct {
-	Realtime_timestamp        int64  `json:"__REALTIME_TIMESTAMP,string"`
-	Boot_id                   string `json:"_BOOT_ID"`
-	Priority                  int32  `json:"PRIORITY,string"`
-	Syslog_identifier         string `json:"SYSLOG_IDENTIFIER"`
-	Message                   string `json:"MESSAGE"`
-	Pid                       string `json:"_PID"`
-	Uid                       string `json:"_UID"`
-	Systemd_unit              string `json:"_SYSTEMD_UNIT"`
-	Hostname                  string `json:"_HOSTNAME"`
-	FullMessage               string `json:"-"`
+	Realtime_timestamp int64  `json:"__REALTIME_TIMESTAMP,string"`
+	Boot_id            string `json:"_BOOT_ID"`
+	Priority           int32  `json:"PRIORITY,string"`
+	Syslog_identifier  string `json:"SYSLOG_IDENTIFIER"`
+	Message            string `json:"MESSAGE"`
+	Pid                string `json:"_PID"`
+	Uid                string `json:"_UID"`
+	Systemd_unit       string `json:"_SYSTEMD_UNIT"`
+	Hostname           string `json:"_HOSTNAME"`
+	FullMessage        string `json:"-"`
+	ContainerID        string `json:"CONTAINER_ID"`
+	ContainerIDFull    string `json:"CONTAINER_ID_FULL"`
+	ContainerTag       string `json:"CONTAINER_TAG"`
+	ContainerName      string `json:"CONTAINER_NAME"`
+	ImageName          string `json:"IMAGE_NAME"`
 }
 
 // Strip date from message-content
@@ -35,10 +41,15 @@ var startsWithTimestamp = regexp.MustCompile("^20[0-9][0-9][/\\-][01][0-9][/\\-]
 
 func (this *SystemdJournalEntry) toGelf() *gelf.Message {
 	var extra = map[string]interface{}{
-		"Boot_id":      this.Boot_id,
-		"Pid":          this.Pid,
-		"Uid":          this.Uid,
-		"Systemd_unit": this.Systemd_unit,
+		"Boot_id":                  this.Boot_id,
+		"Pid":                      this.Pid,
+		"Uid":                      this.Uid,
+		"Systemd_unit":             this.Systemd_unit,
+		"Docker_Container_ID":      this.ContainerID,
+		"Docker_Container_ID_Full": this.ContainerIDFull,
+		"Docker_Container_Tag":     this.ContainerTag,
+		"Docker_Container_Name":    this.ContainerName,
+		"Docker_Image_Name":        this.ImageName,
 	}
 
 	if this.isJsonMessage() {
